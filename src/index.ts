@@ -34,7 +34,7 @@ export default class RedisXpSQL extends EventEmitter {
       host: string;
     },
     redisConfig: {
-      password: string;
+      password?: string;
       name: string;
       host: string;
     },

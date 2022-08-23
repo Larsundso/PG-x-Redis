@@ -24,6 +24,10 @@
   "main": "./dist/index.js",
   "scripts": {"test": "node ./dist/test.js"},
   "type": "module",
+  "licenses": [{
+    "type": "mit",
+    "url": "https://github.com/Larsundso/PG-x-Redis/blob/master/LICENSE"
+  }],
   "dependencies": {
     "eslint-config-airbnb-base": "^15.0.0",
     "pg": "^8.7.3",

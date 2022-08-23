@@ -32,7 +32,8 @@ await DataBase.init();
 
 This Package only supports simple Queries and 4 types of Actions<br>
 **Notice**: Only use this Packages `query()` Function on PostgreSQL Tables with defined Primary Keys.
-<br> It uses Primary Keys to save Data in Redis as it is a KeyValue Storage.
+<br> It uses Primary Keys to save Data in Redis as it is a KeyValue Storage.<br>
+Package does not support `IN`, `NOT IN` and `BETWEEN` Conditions *yet*
 
 ### Supported Action Types
 

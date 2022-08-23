@@ -1,4 +1,28 @@
 {
+  "name": "pg-x-redis",
+  "version": "1.0.0",
+  "description": "PG x Redis utilizes Redis, RedisJSON and RediSearch to speed up PostgreSQL Queries by caching Data into Redis and Selecting Redis Data over PostgreSQL Data.",
+  "keywords": [
+		"redis",
+		"redisearch",
+		"redisjson",
+		"pg",
+		"postgres",
+		"postgresql"
+	],
+  "homepage": "https://github.com/Larsundso/PG-x-Redis",
+  "bugs": "https://github.com/Larsundso/PG-x-Redis/issues",
+  "author": {
+		"name": "Lars Boese",
+		"email": "dev@ayakobot.com",
+		"url": "http://ayakobot.com"
+	},
+  "repository": {
+		"type": "git",
+		"url": "git://github.com/Larsundso/PG-x-Redis.git"
+	},
+  "main": "./dist/index.js",
+  "scripts": {"test": "node ./dist/test.js"},
   "type": "module",
   "dependencies": {
     "eslint-config-airbnb-base": "^15.0.0",

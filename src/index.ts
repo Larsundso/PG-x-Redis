@@ -198,7 +198,9 @@ export default class RedisXpSQL extends EventEmitter {
       });
 
       return (
-        await Promise.all(finishedQueries.map((query, i) => this.query(query, optionsPerSql[i])))
+        await Promise.all(
+          finishedQueries.map((query, i) => this.query(query.trim(), optionsPerSql[i])),
+        )
       ).flat(1);
     }
 

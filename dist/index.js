@@ -140,7 +140,7 @@ export default class RedisXpSQL extends EventEmitter {
                 });
                 return q;
             });
-            return (await Promise.all(finishedQueries.map((query, i) => this.query(query, optionsPerSql[i])))).flat(1);
+            return (await Promise.all(finishedQueries.map((query, i) => this.query(query.trim(), optionsPerSql[i])))).flat(1);
         }
         sql = sql.replace(';', '');
         if (options && !Array.isArray(options))

@@ -19,16 +19,17 @@ export default class RedisXpSQL extends EventEmitter {
         name: string;
         host: string;
     });
-    _redisEnd(): Promise<void>;
-    _initRedis(): Promise<void>;
-    _initPsql(): Promise<void>;
-    init(): Promise<void>;
-    _getDataTypes(tableName: string): Promise<{
+    _redisEnd: () => Promise<void>;
+    _initRedis: () => Promise<void>;
+    _initPsql: () => Promise<void>;
+    init: () => Promise<void>;
+    _getDataTypes: (tableName: string) => Promise<{
         column_name: string;
         data_type: string;
     }[]>;
-    _getPkeys(tableName: string): Promise<string[]>;
-    _cacheData(data: BasicReturnType, tableName: string): Promise<BasicReturnType>;
+    _getPkeys: (tableName: string) => Promise<string[]>;
+    _cacheData: (data: BasicReturnType, tableName: string) => Promise<BasicReturnType>;
+    _redisQueryCreator: (whereContent: string, tableName: string, options?: (string | boolean | null | number)[]) => Promise<string>;
     query(sql: string, options?: (string | boolean | null | number)[]): Promise<BasicReturnType>;
 }
 export {};

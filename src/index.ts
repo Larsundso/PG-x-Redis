@@ -53,7 +53,7 @@ export default class RedisXpSQL extends EventEmitter {
     this._cacheData = this._cacheData.bind(this);
   }
 
-  async _redisEnd() {
+  _redisEnd = async () => {
     // eslint-disable-next-line no-console
     console.log('[Redis DB] Connection ended. Re-initiating...');
 
@@ -66,9 +66,9 @@ export default class RedisXpSQL extends EventEmitter {
     if (this.getMaxListeners() !== 0) this.setMaxListeners(this.getMaxListeners() - 1);
 
     this._initRedis();
-  }
+  };
 
-  async _initRedis() {
+  _initRedis = async () => {
     if (this.getMaxListeners() !== 0) this.setMaxListeners(this.getMaxListeners() + 1);
 
     this.redis.on('connect', _redisConnect);
@@ -78,9 +78,9 @@ export default class RedisXpSQL extends EventEmitter {
     this.redis.on('reconnecting', _redisReconnecting);
 
     await this.redis.connect();
-  }
+  };
 
-  async _initPsql() {
+  _initPsql = async () => {
     if (this.getMaxListeners() !== 0) this.setMaxListeners(this.getMaxListeners() + 1);
 
     this.postgres.query('SELECT NOW() as now;', (err: Error | undefined) => {
@@ -96,14 +96,14 @@ export default class RedisXpSQL extends EventEmitter {
     });
 
     this.postgres.on('error', _psqlError);
-  }
+  };
 
-  async init() {
+  init = async () => {
     await this._initRedis();
     await this._initPsql();
-  }
+  };
 
-  async _getDataTypes(tableName: string) {
+  _getDataTypes = async (tableName: string) => {
     const redisRes = await this.redis.json.get(`types-${tableName}`);
     if (redisRes) return redisRes as { column_name: string; data_type: string }[];
 
@@ -117,9 +117,9 @@ export default class RedisXpSQL extends EventEmitter {
 
     await this.redis.json.set(`types-${tableName}`, '$', psqlRes.rows);
     return psqlRes.rows as { column_name: string; data_type: string }[];
-  }
+  };
 
-  async _getPkeys(tableName: string) {
+  _getPkeys = async (tableName: string) => {
     const redisRes = await this.redis.json.get(`pkeys-${tableName}`);
     if (redisRes) {
       return (redisRes as { attname: string }[]).map((s) => s.attname) as unknown as string[];
@@ -143,9 +143,9 @@ export default class RedisXpSQL extends EventEmitter {
 
     this.redis.json.set(`pkeys-${tableName}` as never, '$' as never, psqlRes.rows as never);
     return psqlRes.rows.map((s) => s.attname) as string[];
-  }
+  };
 
-  async _cacheData(data: BasicReturnType, tableName: string) {
+  _cacheData = async (data: BasicReturnType, tableName: string) => {
     const dataTypes = await this._getDataTypes(tableName);
     const dataObject: { [key: string]: { type: string; SORTABLE: boolean; AS: string } } = {};
 
@@ -176,7 +176,70 @@ export default class RedisXpSQL extends EventEmitter {
     );
 
     return data;
-  }
+  };
+
+  _redisQueryCreator = async (
+    whereContent: string,
+    tableName: string,
+    options?: (string | boolean | null | number)[],
+  ) => {
+    if (!whereContent) return '*';
+    whereContent = whereContent.trim();
+
+    const args = whereContent.split(/\s+/g);
+    const chunks: string[][] = [[]];
+    let lastI = 0;
+    args.forEach((arg) => {
+      if (chunks[lastI].length === 4) {
+        lastI += 1;
+        chunks[lastI] = [arg];
+      } else {
+        chunks[lastI].push(arg);
+      }
+    });
+
+    const types = await this._getDataTypes(tableName);
+
+    const replacedConditions = chunks.map((arg) => {
+      const replacement = whereStatementReplacementsRedis.conditions.find(
+        (c) => c[0] === ` ${arg[1]} `,
+      )?.[1];
+
+      let parsedArg: string | number | boolean | null | undefined;
+      if (/\$\d+/g.test(arg[2])) {
+        const num = Number(arg[2].replace('$', '')) - 1;
+        parsedArg = ['string'].includes(typeof options?.[num])
+          ? `"${options?.[num]}"`
+          : options?.[num];
+      } else [, , parsedArg] = arg;
+
+      const type = types.find((t) => t.column_name === arg[0]);
+
+      return [
+        replacement
+          ?.replace('$name', arg[0])
+          .replace(
+            '$cond',
+            type?.data_type === 'boolean' ? `{${String(parsedArg)}}` : String(parsedArg),
+          ),
+        arg[2],
+      ];
+    });
+
+    const finishedRedisQuery = replacedConditions
+      .map(([c, splitter]) => {
+        const splitterToUse = whereStatementReplacementsRedis.splitters.find(
+          (s) => s[0] === splitter,
+        )?.[1];
+
+        return splitterToUse !== undefined ? [c, splitterToUse] : [c];
+      })
+      .flat(1)
+      .join(' ')
+      .replace(/\s+/g, ' ');
+
+    return finishedRedisQuery;
+  };
 
   async query(
     sql: string,
@@ -216,7 +279,7 @@ export default class RedisXpSQL extends EventEmitter {
       case 'select': {
         const tableName = queryArgs[2].toLowerCase();
         const whereContent = sql.toLowerCase().split('where')[1];
-        const redisQuery = redisQueryCreator(whereContent, options);
+        const redisQuery = await this._redisQueryCreator(whereContent, tableName, options);
         let needsFirstRun = false;
         let redisRes = await this.redis.ft.search(`index:${tableName}`, redisQuery).catch((e) => {
           if (!String(e).includes('no such index')) return null;
@@ -249,7 +312,7 @@ export default class RedisXpSQL extends EventEmitter {
       case 'update': {
         const tableName = queryArgs[0].toLowerCase();
         const whereContent = sql.toLowerCase().split('where')[1];
-        const redisQuery = redisQueryCreator(whereContent, options);
+        const redisQuery = await this._redisQueryCreator(whereContent, tableName, options);
         let needsFirstRun = false;
         let redisRes = await this.redis.ft.search(`index:${tableName}`, redisQuery).catch((e) => {
           if (!String(e).includes('no such index')) return null;
@@ -319,54 +382,4 @@ const _redisReconnecting = async () => {
 
 const _psqlError = async (err: Error) => {
   throw new Error(`[pSQL DB] Unexpected Error on idle Client\n${err}`);
-};
-
-const redisQueryCreator = (
-  whereContent: string,
-  options?: (string | boolean | null | number)[],
-) => {
-  if (!whereContent) return '*';
-  whereContent = whereContent.trim();
-
-  const args = whereContent.split(/\s+/g);
-  const chunks: string[][] = [[]];
-  let lastI = 0;
-  args.forEach((arg) => {
-    if (chunks[lastI].length === 4) {
-      lastI += 1;
-      chunks[lastI] = [arg];
-    } else {
-      chunks[lastI].push(arg);
-    }
-  });
-
-  const replacedConditions = chunks.map((arg) => {
-    const replacement = whereStatementReplacementsRedis.conditions.find(
-      (c) => c[0] === ` ${arg[1]} `,
-    )?.[1];
-
-    let parsedArg: string | number | boolean | null | undefined;
-    if (/\$\d+/g.test(arg[2])) {
-      const num = Number(arg[2].replace('$', '')) - 1;
-      parsedArg = ['string'].includes(typeof options?.[num])
-        ? `"${options?.[num]}"`
-        : options?.[num];
-    } else [, , parsedArg] = arg;
-
-    return [replacement?.replace('$name', arg[0]).replace('$cond', String(parsedArg)), arg[2]];
-  });
-
-  const finishedRedisQuery = replacedConditions
-    .map(([c, splitter]) => {
-      const splitterToUse = whereStatementReplacementsRedis.splitters.find(
-        (s) => s[0] === splitter,
-      )?.[1];
-
-      return splitterToUse !== undefined ? [c, splitterToUse] : [c];
-    })
-    .flat(1)
-    .join(' ')
-    .replace(/\s+/g, ' ');
-
-  return finishedRedisQuery;
 };

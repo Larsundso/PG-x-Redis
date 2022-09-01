@@ -1,6 +1,6 @@
 {
   "name": "pg-x-redis",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "PG x Redis utilizes Redis, RedisJSON and RediSearch to speed up PostgreSQL Queries by caching Data into Redis and Selecting Redis Data over PostgreSQL Data.",
   "keywords": [
 		"redis",

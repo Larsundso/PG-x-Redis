@@ -259,7 +259,7 @@ export default class RedisXpSQL extends EventEmitter {
                 const pKeys = await this._getPkeys(tableName);
                 await Promise.all(psqlRes.rows.map((r) => {
                     const pKeyStrings = pKeys.map((p) => r[p]).join(':');
-                    return this.redis.json.del(pKeyStrings, '$');
+                    return this.redis.json.del(`${tableName}:${pKeyStrings}`);
                 }));
                 return psqlRes.rows;
             }

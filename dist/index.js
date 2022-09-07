@@ -217,7 +217,9 @@ export default class RedisXpSQL extends EventEmitter {
                     redisRes = await this.redis.ft.search(`index:${tableName}`, redisQuery).catch(() => null);
                 }
                 if (redisRes) {
-                    return redisRes.documents.map((d) => d.value);
+                    return redisRes.documents
+                        .filter((d) => d.id.split(/:/g)[0] === tableName)
+                        .map((d) => d.value);
                 }
                 const psqlRes = await this.postgres.query(sql, options);
                 if (!psqlRes)

@@ -147,12 +147,12 @@ export default class RedisXpSQL extends EventEmitter {
 
   _cacheData = async (data: BasicReturnType, tableName: string) => {
     const dataTypes = await this._getDataTypes(tableName);
-    const dataObject: { [key: string]: { type: string; SORTABLE: boolean; AS: string } } = {};
+    const dataObject: { [key: string]: { type: string; SORTABLE: false; AS: string } } = {};
 
     dataTypes.forEach((d) => {
       dataObject[`$.${d.column_name}`] = {
         type: d.data_type === 'boolean' ? Redis.SchemaFieldTypes.TAG : Redis.SchemaFieldTypes.TEXT,
-        SORTABLE: d.data_type !== 'boolean',
+        SORTABLE: false,
         AS: d.column_name,
       };
     });

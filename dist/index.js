@@ -113,7 +113,7 @@ export default class RedisXpSQL extends EventEmitter {
         dataTypes.forEach((d) => {
             dataObject[`$.${d.column_name}`] = {
                 type: d.data_type === 'boolean' ? Redis.SchemaFieldTypes.TAG : Redis.SchemaFieldTypes.TEXT,
-                SORTABLE: d.data_type !== 'boolean',
+                SORTABLE: false,
                 AS: d.column_name,
             };
         });

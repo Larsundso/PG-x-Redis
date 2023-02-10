@@ -24,6 +24,7 @@ type BasicReturnType = {
 export default class RedisXpSQL extends EventEmitter {
   postgres: PG.Pool;
   redis: Redis.RedisClientType;
+  redisReady: boolean;
 
   constructor(
     pgConfig: {
@@ -43,12 +44,14 @@ export default class RedisXpSQL extends EventEmitter {
 
     this.postgres = new PG.Pool(pgConfig);
     this.redis = Redis.createClient(redisConfig);
+    this.redisReady = false;
 
     this.query = this.query.bind(this);
     this.init = this.init.bind(this);
     this._initRedis = this._initRedis.bind(this);
     this._initPsql = this._initPsql.bind(this);
     this._redisEnd = this._redisEnd.bind(this);
+    this._redisReady = this._redisReady.bind(this);
     this._getPkeys = this._getPkeys.bind(this);
     this._cacheData = this._cacheData.bind(this);
   }
@@ -56,9 +59,10 @@ export default class RedisXpSQL extends EventEmitter {
   _redisEnd = async () => {
     // eslint-disable-next-line no-console
     console.log('[Redis DB] Connection ended. Re-initiating...');
+    this.redisReady = false;
 
     this.redis.removeListener('connect', _redisConnect);
-    this.redis.removeListener('ready', _redisReady);
+    this.redis.removeListener('ready', this._redisReady);
     this.redis.removeListener('end', this._redisEnd);
     this.redis.removeListener('error', _redisError);
     this.redis.removeListener('reconnecting', _redisReconnecting);
@@ -68,11 +72,17 @@ export default class RedisXpSQL extends EventEmitter {
     this._initRedis();
   };
 
+  _redisReady = async () => {
+    // eslint-disable-next-line no-console
+    console.log('[Redis DB] Established Connection to DataBase');
+    this.redisReady = true;
+  };
+
   _initRedis = async () => {
     if (this.getMaxListeners() !== 0) this.setMaxListeners(this.getMaxListeners() + 1);
 
     this.redis.on('connect', _redisConnect);
-    this.redis.on('ready', _redisReady);
+    this.redis.on('ready', this._redisReady);
     this.redis.on('end', this._redisEnd);
     this.redis.on('error', _redisError);
     this.redis.on('reconnecting', _redisReconnecting);
@@ -245,6 +255,8 @@ export default class RedisXpSQL extends EventEmitter {
     sql: string,
     options?: (string | boolean | null | number)[],
   ): Promise<BasicReturnType> {
+    if (!this.redisReady) return (await this.postgres.query(sql, options)).rows;
+
     if ([...sql].filter((s) => s === ';').length > 1) {
       const sqls = sql.split(/;\s?/g).filter((s) => s.length);
       const optionsPerSql = sqls.map((query) =>
@@ -365,11 +377,6 @@ export default class RedisXpSQL extends EventEmitter {
 const _redisConnect = async () => {
   // eslint-disable-next-line no-console
   console.log('[Redis DB] Connecting to DataBase...');
-};
-
-const _redisReady = async () => {
-  // eslint-disable-next-line no-console
-  console.log('[Redis DB] Established Connection to DataBase');
 };
 
 const _redisError = async (err: Error) => {

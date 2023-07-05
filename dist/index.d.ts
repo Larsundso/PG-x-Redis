@@ -2,12 +2,13 @@
 import { EventEmitter } from 'events';
 import PG from 'pg';
 import Redis from 'redis';
-declare type BasicReturnType = {
+type BasicReturnType = {
     [key: string]: string | boolean | null | number | BasicReturnType[];
 }[];
 export default class RedisXpSQL extends EventEmitter {
     postgres: PG.Pool;
     redis: Redis.RedisClientType;
+    redisReady: boolean;
     constructor(pgConfig: {
         database: string;
         user: string;
@@ -20,6 +21,7 @@ export default class RedisXpSQL extends EventEmitter {
         host: string;
     });
     _redisEnd: () => Promise<void>;
+    _redisReady: () => Promise<void>;
     _initRedis: () => Promise<void>;
     _initPsql: () => Promise<void>;
     init: () => Promise<void>;

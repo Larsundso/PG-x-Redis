@@ -10,6 +10,8 @@ const whereStatementReplacementsRedis = {
     [' > ', '-(@$name:[($cond +inf])'],
     [' < ', '-(@$name:[+inf ($cond])'],
     [' = ', '(@$name:$cond)'],
+    [' in ', '(@$name:$cond)'],
+    [' notin ', '-(@$name:$cond)'],
   ],
   splitters: [
     ['AND', ''],
@@ -196,7 +198,7 @@ export default class RedisXpSQL extends EventEmitter {
     if (!whereContent) return '*';
     whereContent = whereContent.trim();
 
-    const args = whereContent.split(/\s+/g);
+    const args = whereContent.replace('not in', 'notin').split(/\s+/g);
     const chunks: string[][] = [[]];
     let lastI = 0;
     args.forEach((arg) => {
@@ -222,6 +224,10 @@ export default class RedisXpSQL extends EventEmitter {
           ? `"${options?.[num]}"`
           : options?.[num];
       } else [, , parsedArg] = arg;
+
+      if (arg[1] === 'in' || arg[1] === 'notin') {
+        parsedArg = String(parsedArg)?.replace(/,/g, '|');
+      }
 
       const type = types.find((t) => t.column_name === arg[0]);
 

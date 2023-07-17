@@ -19,7 +19,7 @@ const whereStatementReplacementsRedis = {
   ],
 };
 
-type BasicReturnType = {
+export type BasicReturnType = {
   [key: string]: string | boolean | null | number | BasicReturnType[];
 }[];
 

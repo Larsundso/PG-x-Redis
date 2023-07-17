@@ -261,9 +261,7 @@ export default class RedisXpSQL extends EventEmitter {
     sql: string,
     options?: (string | boolean | null | number)[],
   ): Promise<BasicReturnType> {
-    options = options?.map((o) => (o && typeof o === 'string' ? o.replace(/:/g, '\u003a') : o));
-
-    if (!this.redisReady) return (await this.postgres.query(sql, unclean(options))).rows;
+    if (!this.redisReady) return (await this.postgres.query(sql, options)).rows;
 
     if ([...sql].filter((s) => s === ';').length > 1) {
       const sqls = sql.split(/;\s?/g).filter((s) => s.length);
@@ -324,7 +322,7 @@ export default class RedisXpSQL extends EventEmitter {
             .map((d) => d.value) as BasicReturnType;
         }
 
-        const psqlRes = await this.postgres.query(sql, unclean(options));
+        const psqlRes = await this.postgres.query(sql, options);
 
         if (!psqlRes) throw new Error('[pSQL DB] No Response received from Query');
         if (!psqlRes.rowCount) return [];
@@ -348,19 +346,19 @@ export default class RedisXpSQL extends EventEmitter {
         }
 
         if (!redisRes || !redisRes.total) return [];
-        const psqlRes = await this.postgres.query(`${sql} RETURNING *`, unclean(options));
+        const psqlRes = await this.postgres.query(`${sql} RETURNING *`, options);
 
         return this._cacheData(psqlRes.rows, tableName);
       }
       case 'insert': {
         const tableName = queryArgs[1].toLowerCase();
-        const psqlRes = await this.postgres.query(`${sql} RETURNING *`, unclean(options));
+        const psqlRes = await this.postgres.query(`${sql} RETURNING *`, options);
 
         return this._cacheData(psqlRes.rows, tableName);
       }
       case 'delete': {
         const tableName = queryArgs[1].toLowerCase();
-        const psqlRes = await this.postgres.query(`${sql} RETURNING *`, unclean(options));
+        const psqlRes = await this.postgres.query(`${sql} RETURNING *`, options);
 
         if (!psqlRes) throw new Error('[pSQL DB] No Response received from Query');
 
@@ -400,6 +398,3 @@ const _redisReconnecting = async () => {
 const _psqlError = async (err: Error) => {
   throw new Error(`[pSQL DB] Unexpected Error on idle Client\n${err}`);
 };
-
-const unclean = (options: (string | boolean | null | number)[] | undefined) =>
-  options?.map((o) => (o && typeof o === 'string' ? o.replace(/\\u003a/g, ':') : o));

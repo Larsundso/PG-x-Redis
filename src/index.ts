@@ -261,6 +261,8 @@ export default class RedisXpSQL extends EventEmitter {
     sql: string,
     options?: (string | boolean | null | number)[],
   ): Promise<BasicReturnType> {
+    options = options?.map((o) => (o && typeof o === 'string' ? o.replace(/:/g, '\u003a') : o));
+
     if (!this.redisReady) return (await this.postgres.query(sql, options)).rows;
 
     if ([...sql].filter((s) => s === ';').length > 1) {

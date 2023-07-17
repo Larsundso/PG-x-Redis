@@ -2,7 +2,7 @@
 import { EventEmitter } from 'events';
 import PG from 'pg';
 import Redis from 'redis';
-type BasicReturnType = {
+export type BasicReturnType = {
     [key: string]: string | boolean | null | number | BasicReturnType[];
 }[];
 export default class RedisXpSQL extends EventEmitter {
@@ -34,5 +34,4 @@ export default class RedisXpSQL extends EventEmitter {
     _redisQueryCreator: (whereContent: string, tableName: string, options?: (string | boolean | null | number)[]) => Promise<string>;
     query(sql: string, options?: (string | boolean | null | number)[]): Promise<BasicReturnType>;
 }
-export {};
 //# sourceMappingURL=index.d.ts.map
